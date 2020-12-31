@@ -8,14 +8,27 @@
 
     android:orientation="vertical"
     tools:context=".MainActivity">
-
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="캡쳐" />
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="캡쳐" />
 
+        <Button
+            android:id="@+id/change_cam"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Change Camera" />
+
+        <TextView
+            android:id="@+id/face_count"
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"/>
+    </LinearLayout>
 
     <org.opencv.android.JavaCameraView
         android:layout_width="match_parent"

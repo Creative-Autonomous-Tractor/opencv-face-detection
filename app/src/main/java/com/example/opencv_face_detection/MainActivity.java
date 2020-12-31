@@ -17,6 +17,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -48,9 +49,12 @@ public class MainActivity extends AppCompatActivity
 
     private CameraBridgeViewBase mOpenCvCameraView;
 
+    private int cam_ind = 0;
+    private double prev_pixel_avg = -1;
+
     //public native void ConvertRGBtoGray(long matAddrInput, long matAddrResult);
     public native long loadCascade(String cascadeFileName );
-    public native void detect(long cascadeClassifier_face, long cascadeClassifier_eye, long matAddrInput, long matAddrResult);
+    public native double detect(long cascadeClassifier_face, long cascadeClassifier_eye, long matAddrInput, long matAddrResult);
     public long cascadeClassifier_face = 0;
     public long cascadeClassifier_eye = 0;
 
@@ -143,7 +147,7 @@ public class MainActivity extends AppCompatActivity
         mOpenCvCameraView = (CameraBridgeViewBase)findViewById(R.id.activity_surface_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
-        mOpenCvCameraView.setCameraIndex(1); // 사용할 카메라 정하는 곳 front-camera(1),  back-camera(0)
+        mOpenCvCameraView.setCameraIndex(cam_ind); // 사용할 카메라 정하는 곳 front-camera(1),  back-camera(0)
 
         Button button = (Button)findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
@@ -174,6 +178,18 @@ public class MainActivity extends AppCompatActivity
 
                 releaseWriteLock();
 
+            }
+        });
+        Button change_cam = (Button)findViewById(R.id.change_cam);
+        change_cam.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 카메라 전면 후면 변경하는 코드
+                cam_ind = 1 - cam_ind;
+                mOpenCvCameraView = (CameraBridgeViewBase)findViewById(R.id.activity_surface_view);
+                mOpenCvCameraView.disableView(); // 카메라를 먼저 꺼야 카메라 변경 가능
+                mOpenCvCameraView.setCameraIndex(cam_ind);
+                mOpenCvCameraView.enableView();
             }
         });
     }
@@ -220,29 +236,23 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-
         try{
             getWriteLock();
-
         matInput = inputFrame.rgba();
-
         if ( matResult == null )
-
             matResult = new Mat(matInput.rows(), matInput.cols(), matInput.type());
-
         //ConvertRGBtoGray(matInput.getNativeObjAddr(), matResult.getNativeObjAddr());
-
-        Core.flip(matInput, matInput, 1);
-
-        detect(cascadeClassifier_face,cascadeClassifier_eye, matInput.getNativeObjAddr(),
-                matResult.getNativeObjAddr());
-
+        if(cam_ind == 1) Core.flip(matInput, matInput, 1); // 영상 좌우반전 필요하면 사용
+        double pixel_avg = detect(cascadeClassifier_face,cascadeClassifier_eye, matInput.getNativeObjAddr(), matResult.getNativeObjAddr());
+        //setContentView(R.layout.activity_main);
+            if(pixel_avg == -1) pixel_avg = prev_pixel_avg;
+        TextView tView = (TextView) findViewById(R.id.face_count);
+        tView.setText("Pixel Average: " + String.valueOf(pixel_avg));
+        prev_pixel_avg = pixel_avg;
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
         releaseWriteLock();
-
         return matResult;
     }
 
@@ -277,7 +287,7 @@ public class MainActivity extends AppCompatActivity
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(CAMERA) != PackageManager.PERMISSION_GRANTED
             || checkSelfPermission(WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+                requestPermissions(new String[]{CAMERA, WRITE_EXTERNAL_STORAGE}, CAMERA_PERMISSION_REQUEST_CODE);
                 havePermission = false;
             }
         }
@@ -290,7 +300,7 @@ public class MainActivity extends AppCompatActivity
     @TargetApi(Build.VERSION_CODES.M)
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == CAMERA_PERMISSION_REQUEST_CODE && grantResults.length > 0
-                && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
             onCameraPermissionGranted();
         }else{
             showDialogForPermission("앱을 실행하려면 퍼미션을 허가하셔야합니다.");
