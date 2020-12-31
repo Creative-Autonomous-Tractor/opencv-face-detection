@@ -4,7 +4,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.res.AssetManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.annotation.TargetApi;
 import android.content.pm.PackageManager;
@@ -12,13 +14,18 @@ import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,6 +33,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 import static android.Manifest.permission.CAMERA;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
@@ -45,6 +53,16 @@ public class MainActivity extends AppCompatActivity
     public native void detect(long cascadeClassifier_face, long cascadeClassifier_eye, long matAddrInput, long matAddrResult);
     public long cascadeClassifier_face = 0;
     public long cascadeClassifier_eye = 0;
+
+    private final Semaphore writeLock = new Semaphore(1);
+
+    public void getWriteLock() throws InterruptedException {
+        writeLock.acquire();
+    }
+
+    public void releaseWriteLock() {
+        writeLock.release();
+    }
 
 
     static {
@@ -126,6 +144,38 @@ public class MainActivity extends AppCompatActivity
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.setCameraIndex(1); // 사용할 카메라 정하는 곳 front-camera(1),  back-camera(0)
+
+        Button button = (Button)findViewById(R.id.button);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+
+                try {
+                    getWriteLock();
+
+                    File path = new File(Environment.getExternalStorageDirectory() + "/Images/");
+                    path.mkdirs();
+                    File file = new File(path, "image.jpg");
+
+                    String filename = file.toString();
+
+                    Imgproc.cvtColor(matResult, matResult, Imgproc.COLOR_BGR2RGBA);
+                    boolean ret  = Imgcodecs.imwrite( filename, matResult);
+                    if ( ret ) Log.d(TAG, "SUCESS");
+                    else Log.d(TAG, "FAIL");
+
+
+                    Intent mediaScanIntent = new Intent( Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                    mediaScanIntent.setData(Uri.fromFile(file));
+                    sendBroadcast(mediaScanIntent);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+
+                releaseWriteLock();
+
+            }
+        });
     }
 
     @Override
@@ -171,6 +221,9 @@ public class MainActivity extends AppCompatActivity
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
 
+        try{
+            getWriteLock();
+
         matInput = inputFrame.rgba();
 
         if ( matResult == null )
@@ -184,6 +237,11 @@ public class MainActivity extends AppCompatActivity
         detect(cascadeClassifier_face,cascadeClassifier_eye, matInput.getNativeObjAddr(),
                 matResult.getNativeObjAddr());
 
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        releaseWriteLock();
 
         return matResult;
     }
