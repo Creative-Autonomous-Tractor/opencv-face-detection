@@ -73,11 +73,12 @@ Java_com_example_opencv_1face_1detection_MainActivity_detect(JNIEnv *env, jobjec
     equalizeHist(img_gray, img_gray);
     Mat img_resize;
     float resizeRatio = resize(img_gray, img_resize, 640);
-    //-- Detect faces
+    //-- Detect faces: 현재 얼굴이 잘 인식이 안 돼서 개선 필요할 것으로 보임
     ((CascadeClassifier *) cascade_classifier_face)->detectMultiScale( img_resize, faces, 1.1, 2, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
     __android_log_print(ANDROID_LOG_DEBUG, (char *) "native-lib :: ", (char *) "face %d found ", faces.size());
     ret = faces.size();
     //for (int i = 0; i < faces.size(); i++) { 하나만 다루기 위해 잠시 주석처리함
+    // 이 부분부터 pixel_avg 구하는 것까지는 직접 넣은 코드 - 얼굴인식된 타원 내부를 이중적분해서 픽셀값 평균 구함
     double_t pixel_avg = -1;
     double pi = 2 * acos(0.0);
     for (int i = 0; i < std::min(1, (int)faces.size()); i++) {
@@ -97,6 +98,7 @@ Java_com_example_opencv_1face_1detection_MainActivity_detect(JNIEnv *env, jobjec
             }
         }
         pixel_avg = pixel_sum / area;
+        // 여기서부터는 원래 있던 코드
         Point center( real_facesize_x + real_facesize_width / 2, real_facesize_y + real_facesize_height/2);
         //Mat mask = ellipse(img_result, center, Size( real_facesize_width / 2, real_facesize_height / 2), 0, 0, 360, Scalar(255, 255, 255), -1); //making a mask
         //for (size_t j = )

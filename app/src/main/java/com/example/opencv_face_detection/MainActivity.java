@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
-
+        // 어떤 카메라 사용할지 설정하는 부분
         mOpenCvCameraView = (CameraBridgeViewBase)findViewById(R.id.activity_surface_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
@@ -238,14 +238,14 @@ public class MainActivity extends AppCompatActivity
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         try{
             getWriteLock();
-        matInput = inputFrame.rgba();
+        matInput = inputFrame.rgba(); //matInput이 현재 프레임을 뜻하므로 열화상 카메라의 프레임으로 바꿔야 함
         if ( matResult == null )
             matResult = new Mat(matInput.rows(), matInput.cols(), matInput.type());
         //ConvertRGBtoGray(matInput.getNativeObjAddr(), matResult.getNativeObjAddr());
         if(cam_ind == 1) Core.flip(matInput, matInput, 1); // 영상 좌우반전 필요하면 사용
         double pixel_avg = detect(cascadeClassifier_face,cascadeClassifier_eye, matInput.getNativeObjAddr(), matResult.getNativeObjAddr());
         //setContentView(R.layout.activity_main);
-            if(pixel_avg == -1) pixel_avg = prev_pixel_avg;
+        if(pixel_avg == -1) pixel_avg = prev_pixel_avg;
         TextView tView = (TextView) findViewById(R.id.face_count);
         tView.setText("Pixel Average: " + String.valueOf(pixel_avg));
         prev_pixel_avg = pixel_avg;
@@ -253,7 +253,7 @@ public class MainActivity extends AppCompatActivity
             e.printStackTrace();
         }
         releaseWriteLock();
-        return matResult;
+        return matResult; // 원들과 타원이 그려진 이미지를 리턴
     }
 
 
