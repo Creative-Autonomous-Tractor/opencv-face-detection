@@ -1,6 +1,6 @@
 # 성경이를 위해 남겨놓는 글
 
-![참고 링크](https://www.notion.so/Android-Face-Detection-using-OpenCV-ecf10ca7fba94023a7191949754355e1#80f4db74599b40cbbc97315fa9be53a3)
+![베이스가 되었던 튜토리얼](https://webnautes.tistory.com/1087)
 
 주의깊게 봐야할 코드는 아래 사진에 나와있는 MainActivity.java랑 native-lib.cpp입니다.
 
