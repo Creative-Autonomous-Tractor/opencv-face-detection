@@ -1,6 +1,6 @@
 # 성경이를 위해 남겨놓는 글
 
-![베이스가 되었던 튜토리얼](https://webnautes.tistory.com/1087)
+[베이스가 되었던 튜토리얼](https://webnautes.tistory.com/1087)
 
 주의깊게 봐야할 코드는 아래 사진에 나와있는 MainActivity.java랑 native-lib.cpp입니다.
 
